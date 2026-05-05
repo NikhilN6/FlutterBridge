@@ -3,31 +3,233 @@
 const qrcode = require('qrcode-terminal');
 const chalk = require('chalk');
 const { spawn } = require('child_process');
-const os = require('os');
+const readline = require('readline');
 
-console.log(chalk.cyan.bold('\n🚀 FlutterBridge CLI'));
-console.log(chalk.gray('Starting Flutter...\n'));
+const VM_URL_TIMEOUT_MS = 60000;
 
-const flutter = spawn('flutter', ['run', '--machine'], { stdio: ['ignore', 'pipe', 'pipe'] });
+function parseArgs(argv) {
+  let deviceId = null;
+  const passthrough = [];
 
-flutter.stdout.on('data', (data) => {
-  const line = data.toString();
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
 
-  // Flutter prints VM service URL in this format
-  if (line.includes('vmServiceUri')) {
-    try {
-      const json = JSON.parse(line);
-      const url = json.params?.vmServiceUri;
+    if (arg === '--device' || arg === '-d') {
+      deviceId = argv[i + 1];
+      i += 1;
+      continue;
+    }
 
-      if (url) {
-        console.log(chalk.yellow('\n📡 Scan this QR with FlutterBridge app:\n'));
-        qrcode.generate(url, { small: true });
-        console.log(chalk.green(`\n✅ VM URL: ${url}`));
-      }
-    } catch (_) {}
+    if (arg.startsWith('--device=')) {
+      deviceId = arg.split('=')[1];
+      continue;
+    }
+
+    passthrough.push(arg);
   }
-});
 
-flutter.stderr.on('data', (data) => {
-  process.stdout.write(chalk.gray(data.toString()));
+  return { deviceId, passthrough };
+}
+
+function parseMachineLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch (_) {
+    return null;
+  }
+}
+
+function runFlutterDevices() {
+  return new Promise((resolve, reject) => {
+    const child = spawn('flutter', ['devices', '--machine'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr || `flutter devices exited with code ${code}`));
+        return;
+      }
+
+      try {
+        const devices = JSON.parse(stdout.trim());
+        if (!Array.isArray(devices)) {
+          reject(new Error('Unexpected output from flutter devices.'));
+          return;
+        }
+        resolve(devices);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}
+
+function formatDevice(device) {
+  const platform = device.platform || device.platformType || 'unknown';
+  return `${device.name} (${platform}) - id: ${device.id}`;
+}
+
+async function promptForDevice(devices) {
+  if (!process.stdin.isTTY) {
+    throw new Error('Multiple devices detected. Use --device <id> to select one.');
+  }
+
+  console.log(chalk.yellow('\nAvailable devices:'));
+  devices.forEach((device, index) => {
+    console.log(`  ${index + 1}) ${formatDevice(device)}`);
+  });
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+  const answer = await new Promise((resolve) => {
+    rl.question(chalk.cyan('\nSelect a device by number or id: '), resolve);
+  });
+
+  rl.close();
+
+  const trimmed = answer.trim();
+  if (!trimmed) {
+    throw new Error('No device selected.');
+  }
+
+  const asIndex = Number(trimmed);
+  if (Number.isInteger(asIndex) && asIndex >= 1 && asIndex <= devices.length) {
+    return devices[asIndex - 1].id;
+  }
+
+  const match = devices.find((device) => device.id === trimmed);
+  if (match) {
+    return match.id;
+  }
+
+  throw new Error(`Unknown device selection: ${trimmed}`);
+}
+
+async function resolveDeviceId(deviceIdArg) {
+  if (deviceIdArg) {
+    return deviceIdArg;
+  }
+
+  const devices = await runFlutterDevices();
+  const supported = devices.filter((device) => device.isSupported !== false);
+
+  if (supported.length === 0) {
+    throw new Error('No devices found. Connect a device or start an emulator.');
+  }
+
+  if (supported.length === 1) {
+    console.log(chalk.gray(`Using device: ${formatDevice(supported[0])}`));
+    return supported[0].id;
+  }
+
+  return promptForDevice(supported);
+}
+
+function handleFlutterError(err) {
+  if (err.code === 'ENOENT') {
+    console.error(chalk.red('Flutter was not found on your PATH. Install Flutter and try again.'));
+  } else {
+    console.error(chalk.red(`Failed to start Flutter: ${err.message}`));
+  }
+
+  process.exitCode = 1;
+}
+
+async function main() {
+  console.log(chalk.cyan.bold('\n🚀 FlutterBridge CLI'));
+
+  const { deviceId: deviceIdArg, passthrough } = parseArgs(process.argv.slice(2));
+
+  let deviceId = null;
+  try {
+    deviceId = await resolveDeviceId(deviceIdArg);
+  } catch (err) {
+    console.error(chalk.red(`Device selection failed: ${err.message}`));
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(chalk.gray('Starting Flutter...\n'));
+
+  const flutterArgs = ['run', '--machine'];
+  if (deviceId) {
+    flutterArgs.push('-d', deviceId);
+  }
+  if (passthrough.length > 0) {
+    flutterArgs.push(...passthrough);
+  }
+
+  const flutter = spawn('flutter', flutterArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
+  let buffer = '';
+  let vmServiceUrl = null;
+
+  const vmTimeout = setTimeout(() => {
+    if (!vmServiceUrl) {
+      console.error(chalk.red(`Timed out after ${VM_URL_TIMEOUT_MS / 1000}s waiting for VM service URL.`));
+      flutter.kill('SIGINT');
+      process.exitCode = 1;
+    }
+  }, VM_URL_TIMEOUT_MS);
+
+  flutter.on('error', handleFlutterError);
+
+  flutter.stdout.on('data', (data) => {
+    buffer += data.toString();
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      const json = parseMachineLine(line);
+      if (!json || !json.params) {
+        continue;
+      }
+
+      const url = json.params.vmServiceUri || json.params.observatoryUri;
+      if (url && !vmServiceUrl) {
+        vmServiceUrl = url;
+        clearTimeout(vmTimeout);
+        console.log(chalk.yellow('\nScan this QR with FlutterBridge app:\n'));
+        qrcode.generate(url, { small: true });
+        console.log(chalk.green(`\nVM URL: ${url}`));
+      }
+    }
+  });
+
+  flutter.stderr.on('data', (data) => {
+    process.stdout.write(chalk.gray(data.toString()));
+  });
+
+  flutter.on('close', (code) => {
+    clearTimeout(vmTimeout);
+    if (code && code !== 0) {
+      process.exitCode = code;
+    }
+  });
+}
+
+main().catch((err) => {
+  console.error(chalk.red(`Unexpected error: ${err.message}`));
+  process.exitCode = 1;
 });

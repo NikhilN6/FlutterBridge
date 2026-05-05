@@ -1,0 +1,31 @@
+# FlutterBridge Roadmap
+
+This roadmap is ordered. Each milestone builds on the previous one.
+
+## Milestone 1: CLI foundation
+- [x] Terminal QR code generation
+- [ ] Parse `flutter run --machine` JSON events for `vmServiceUri`
+- [ ] Multi-device detection with selection prompt
+- [ ] Clear errors for no devices, bad project, or missing Flutter
+- [ ] CLI flags: `--device`, `--qr-only`, `--json`
+- [ ] Publish and support `npx flutterbridge`
+
+## Milestone 2: Companion app MVP
+- [ ] QR scanner screen with permissions
+- [ ] Connect to VM service URL (WebSocket)
+- [ ] Basic status UI: connected, disconnected, error
+- [ ] Trigger hot reload and show reload status
+
+## Milestone 3: Networking + security
+- [ ] Same-LAN reachability checks
+- [ ] Troubleshooting hints for firewalls and routing
+- [ ] Optional pairing token embedded in QR
+
+## Milestone 4: Developer experience + docs
+- [ ] Structured CLI status output
+- [ ] Quickstart and troubleshooting docs
+- [ ] CI checks and unit tests (parsing, device selection)
+
+## Milestone 5: Platform expansion
+- [ ] iOS support parity
+- [ ] Plugin support evaluation and documentation
