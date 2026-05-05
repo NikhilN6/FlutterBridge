@@ -6,6 +6,14 @@ const { spawn } = require('child_process');
 const readline = require('readline');
 
 const VM_URL_TIMEOUT_MS = 60000;
+const SERVICE_URI_KEYS = [
+  'vmServiceUri',
+  'observatoryUri',
+  'debugServiceUri',
+  'debuggerUri',
+  'debugWsUri',
+  'wsUri',
+];
 
 function parseArgs(argv) {
   let deviceId = null;
@@ -46,6 +54,58 @@ function parseMachineLine(line) {
   } catch (_) {
     return null;
   }
+}
+
+function isValidUri(value) {
+  return typeof value === 'string' && /^(ws|http)s?:\/\//.test(value);
+}
+
+function findUriByKeys(obj, keys) {
+  if (!obj || typeof obj !== 'object') {
+    return null;
+  }
+
+  for (const key of keys) {
+    if (isValidUri(obj[key])) {
+      return obj[key];
+    }
+  }
+
+  return null;
+}
+
+function findAnyUri(obj) {
+  if (!obj || typeof obj !== 'object') {
+    return null;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (/uri/i.test(key) && isValidUri(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function extractVmServiceUri(event) {
+  if (!event || typeof event !== 'object') {
+    return null;
+  }
+
+  const params = event.params || event;
+  let uri = findUriByKeys(params, SERVICE_URI_KEYS);
+  if (uri) {
+    return uri;
+  }
+
+  const debuggingOptions = params.debuggingOptions || params.debugOptions;
+  uri = findUriByKeys(debuggingOptions, SERVICE_URI_KEYS);
+  if (uri) {
+    return uri;
+  }
+
+  return findAnyUri(params);
 }
 
 function runFlutterDevices() {
@@ -182,7 +242,8 @@ async function main() {
   }
 
   const flutter = spawn('flutter', flutterArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-  let buffer = '';
+  let stdoutBuffer = '';
+  let stderrBuffer = '';
   let vmServiceUrl = null;
 
   const vmTimeout = setTimeout(() => {
@@ -195,29 +256,39 @@ async function main() {
 
   flutter.on('error', handleFlutterError);
 
-  flutter.stdout.on('data', (data) => {
-    buffer += data.toString();
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop();
+  const handleMachineChunk = (buffer, data) => {
+    let nextBuffer = buffer + data.toString();
+    const lines = nextBuffer.split(/\r?\n/);
+    nextBuffer = lines.pop();
 
     for (const line of lines) {
       const json = parseMachineLine(line);
-      if (!json || !json.params) {
+      if (!json) {
         continue;
       }
 
-      const url = json.params.vmServiceUri || json.params.observatoryUri;
-      if (url && !vmServiceUrl) {
-        vmServiceUrl = url;
-        clearTimeout(vmTimeout);
-        console.log(chalk.yellow('\nScan this QR with FlutterBridge app:\n'));
-        qrcode.generate(url, { small: true });
-        console.log(chalk.green(`\nVM URL: ${url}`));
+      const events = Array.isArray(json) ? json : [json];
+      for (const event of events) {
+        const url = extractVmServiceUri(event);
+        if (url && !vmServiceUrl) {
+          vmServiceUrl = url;
+          clearTimeout(vmTimeout);
+          console.log(chalk.yellow('\nScan this QR with FlutterBridge app:\n'));
+          qrcode.generate(url, { small: true });
+          console.log(chalk.green(`\nVM URL: ${url}`));
+        }
       }
     }
+
+    return nextBuffer;
+  };
+
+  flutter.stdout.on('data', (data) => {
+    stdoutBuffer = handleMachineChunk(stdoutBuffer, data);
   });
 
   flutter.stderr.on('data', (data) => {
+    stderrBuffer = handleMachineChunk(stderrBuffer, data);
     process.stdout.write(chalk.gray(data.toString()));
   });
 
