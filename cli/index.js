@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const VM_URL_TIMEOUT_MS = 60000;
 const SERVICE_URI_KEYS = [
@@ -128,6 +129,63 @@ function extractVmServiceUri(event) {
   }
 
   return findAnyUri(params);
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0';
+}
+
+function scoreLanIp(ip) {
+  if (ip.startsWith('192.168.')) {
+    return 3;
+  }
+  if (ip.startsWith('10.')) {
+    return 2;
+  }
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) {
+    return 1;
+  }
+  return 0;
+}
+
+function getLanIp() {
+  const interfaces = os.networkInterfaces();
+  const candidates = [];
+
+  for (const entries of Object.values(interfaces)) {
+    for (const net of entries || []) {
+      if (net.family !== 'IPv4' || net.internal) {
+        continue;
+      }
+      candidates.push(net.address);
+    }
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => scoreLanIp(b) - scoreLanIp(a));
+  return candidates[0];
+}
+
+function rewriteVmServiceUrl(originalUrl) {
+  try {
+    const parsed = new URL(originalUrl);
+    if (!isLoopbackHost(parsed.hostname)) {
+      return { url: originalUrl, replaced: false };
+    }
+
+    const lanIp = getLanIp();
+    if (!lanIp) {
+      return { url: originalUrl, replaced: false };
+    }
+
+    parsed.hostname = lanIp;
+    return { url: parsed.toString(), replaced: true };
+  } catch (_) {
+    return { url: originalUrl, replaced: false };
+  }
 }
 
 function assertFlutterProject(cwd) {
@@ -260,6 +318,10 @@ function handleFlutterError(err) {
   process.exitCode = 1;
 }
 
+function hasWebHostnameFlag(args) {
+  return args.some((arg) => arg === '--web-hostname' || arg.startsWith('--web-hostname='));
+}
+
 async function main() {
   let options = null;
   try {
@@ -314,6 +376,9 @@ async function main() {
   if (deviceId) {
     flutterArgs.push('-d', deviceId);
   }
+  if (deviceId === 'chrome' && !hasWebHostnameFlag(passthrough)) {
+    flutterArgs.push('--web-hostname', '0.0.0.0');
+  }
   if (passthrough.length > 0) {
     flutterArgs.push(...passthrough);
   }
@@ -348,17 +413,26 @@ async function main() {
       for (const event of events) {
         const url = extractVmServiceUri(event);
         if (url && !vmServiceUrl) {
-          vmServiceUrl = url;
+          const rewritten = rewriteVmServiceUrl(url);
+          vmServiceUrl = rewritten.url;
           clearTimeout(vmTimeout);
           if (jsonOutput) {
-            console.log(JSON.stringify({ vmServiceUri: url, deviceId }));
+            const payload = { vmServiceUri: vmServiceUrl, deviceId };
+            if (rewritten.replaced) {
+              payload.originalVmServiceUri = url;
+            }
+            console.log(JSON.stringify(payload));
           } else {
             if (!qrOnly) {
               console.log(chalk.yellow('\nScan this QR with FlutterBridge app:\n'));
             }
-            qrcode.generate(url, { small: true });
+            qrcode.generate(vmServiceUrl, { small: true });
             if (!qrOnly) {
-              console.log(chalk.green(`\nVM URL: ${url}`));
+              if (rewritten.replaced) {
+                console.log(chalk.gray(`Rewrote VM URL for LAN access: ${vmServiceUrl}`));
+                console.log(chalk.gray(`Original VM URL: ${url}`));
+              }
+              console.log(chalk.green(`\nVM URL: ${vmServiceUrl}`));
             }
           }
         }
