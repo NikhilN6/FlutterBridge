@@ -99,6 +99,19 @@ node /path/to/flutterbridge/cli/index.js
 
 You will see a QR code appear in your terminal.
 
+### CLI Options
+
+```bash
+# Choose a specific device (recommended when multiple devices are connected)
+node /path/to/flutterbridge/cli/index.js --device <device-id>
+
+# Print only the QR code (no extra logs)
+node /path/to/flutterbridge/cli/index.js --qr-only
+
+# Print machine-readable output (JSON) when the VM URL is ready
+node /path/to/flutterbridge/cli/index.js --json
+```
+
 ### Connect Your Device
 
 1. Open the **FlutterBridge** app on your phone
