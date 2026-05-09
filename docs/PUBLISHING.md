@@ -8,6 +8,8 @@ This guide is for maintainers who want to publish FlutterBridge CLI to npm.
 2. npm CLI installed (`npm --version`)
 3. Logged in to npm (`npm login`)
 
+Note: While the package can be installed with npm, pnpm, or bun, publishing is done through npm registry.
+
 ## Pre-publish Checklist
 
 - [ ] All tests pass
@@ -60,8 +62,15 @@ npm publish --tag beta
 # Check on npm
 npm view flutterbridge
 
-# Test installation
+# Test installation with different package managers
 npx flutterbridge@latest --help
+pnpm dlx flutterbridge@latest --help
+bunx flutterbridge@latest --help
+
+# Test global installation
+npm install -g flutterbridge@latest
+pnpm add -g flutterbridge@latest
+bun add -g flutterbridge@latest
 ```
 
 ## Version Management

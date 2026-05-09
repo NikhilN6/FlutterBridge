@@ -9,13 +9,27 @@ Bridge your Flutter code to your phone instantly. No USB cables. No complex ADB 
 ### Global Installation
 
 ```bash
+# Using npm
 npm install -g flutterbridge
+
+# Using pnpm
+pnpm add -g flutterbridge
+
+# Using bun
+bun add -g flutterbridge
 ```
 
-### One-time Use (npx)
+### One-time Use (No Installation)
 
 ```bash
+# Using npm
 npx flutterbridge
+
+# Using pnpm
+pnpm dlx flutterbridge
+
+# Using bun
+bunx flutterbridge
 ```
 
 ## Usage
@@ -50,6 +64,7 @@ flutterbridge -- --flavor production
 
 - Node.js >= 18
 - Flutter >= 3.0
+- Package manager: npm, pnpm, or bun
 - Both PC and phone on the same WiFi network
 
 ## Troubleshooting

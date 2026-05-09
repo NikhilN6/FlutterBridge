@@ -33,12 +33,14 @@
 - [x] Node.js engine requirement (>=18)
 - [x] MIT license specified
 - [x] Dependencies cleaned (removed unused `commander`)
+- [x] Compatible with npm, pnpm, bun, and yarn
 
 ## ✅ Documentation
 - [x] LICENSE file (MIT)
 - [x] CONTRIBUTING.md
 - [x] CLI README.md
 - [x] Publishing guide (docs/PUBLISHING.md)
+- [x] Package manager compatibility guide (docs/PACKAGE_MANAGERS.md)
 - [x] Phase 1 completion summary (docs/PHASE1_COMPLETE.md)
 - [x] Updated main README.md
 - [x] Updated roadmap.md
@@ -70,12 +72,24 @@ npm login
 npm publish
 ```
 
-After publishing, users can install with:
+After publishing, users can install with any package manager:
 
 ```bash
+# npm
 npm install -g flutterbridge
-# or
 npx flutterbridge
+
+# pnpm  
+pnpm add -g flutterbridge
+pnpm dlx flutterbridge
+
+# bun
+bun add -g flutterbridge
+bunx flutterbridge
+
+# yarn
+yarn global add flutterbridge
+yarn dlx flutterbridge
 ```
 
 ## 📊 Package Stats

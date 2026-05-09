@@ -37,7 +37,8 @@
   - MIT license
 - ✅ CLI README with installation and usage instructions
 - ✅ .npmignore to exclude unnecessary files
-- ✅ Ready for `npx flutterbridge` and `npm i -g flutterbridge`
+- ✅ Compatible with npm, pnpm, bun, and yarn
+- ✅ Ready for `npx`, `pnpm dlx`, `bunx`, and `yarn dlx`
 - ✅ Publishing guide created
 
 ### 5. Documentation ✅
@@ -45,6 +46,7 @@
 - ✅ CONTRIBUTING.md with contribution guidelines
 - ✅ CLI README.md with npm installation instructions
 - ✅ Publishing guide for maintainers
+- ✅ Package manager compatibility guide (npm, pnpm, bun, yarn)
 - ✅ Updated main README with Phase 1 completion status
 - ✅ Updated roadmap.md marking Phase 1 as complete
 
@@ -64,6 +66,26 @@ The CLI is now ready to be published to npm. To publish:
 cd cli
 npm login
 npm publish
+```
+
+After publishing, users can install with any package manager:
+
+```bash
+# npm
+npm install -g flutterbridge
+npx flutterbridge
+
+# pnpm
+pnpm add -g flutterbridge
+pnpm dlx flutterbridge
+
+# bun
+bun add -g flutterbridge
+bunx flutterbridge
+
+# yarn
+yarn global add flutterbridge
+yarn dlx flutterbridge
 ```
 
 See `docs/PUBLISHING.md` for detailed publishing instructions.

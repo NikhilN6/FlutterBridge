@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
 ![Flutter](https://img.shields.io/badge/flutter-%3E%3D3.0.0-blue)
+![Phase 1](https://img.shields.io/badge/Phase%201-Complete-success)
 ![Status](https://img.shields.io/badge/status-in%20development-orange)
 
 ---
@@ -87,14 +88,26 @@ flutterbridge/
 
 ### Installation
 
-#### Option 1: NPM (Recommended)
+#### Option 1: Package Manager (Recommended)
 
 ```bash
-# Global installation
+# Using npm
 npm install -g flutterbridge
 
-# Or use npx (no installation needed)
+# Using pnpm
+pnpm add -g flutterbridge
+
+# Using bun
+bun add -g flutterbridge
+
+# Or use without installation (npm)
 npx flutterbridge
+
+# Or use without installation (pnpm)
+pnpm dlx flutterbridge
+
+# Or use without installation (bun)
+bunx flutterbridge
 ```
 
 #### Option 2: From Source
@@ -110,11 +123,13 @@ pnpm install
 Navigate to your Flutter project and run:
 
 ```bash
-# If installed globally
+# If installed globally (works with npm, pnpm, or bun)
 flutterbridge
 
-# Or with npx
-npx flutterbridge
+# Or without installation
+npx flutterbridge      # npm
+pnpm dlx flutterbridge # pnpm
+bunx flutterbridge     # bun
 
 # Or from source
 node /path/to/flutterbridge/cli/index.js
@@ -151,6 +166,33 @@ flutterbridge -- --flavor production
 ## 🔄 Hot Reload
 
 Make changes in your Flutter code and save. FlutterBridge automatically reflects the updates on your connected device — no USB required.
+
+---
+
+## 📊 Current Status
+
+### ✅ Phase 1: CLI Foundation — COMPLETED
+
+All Phase 1 objectives have been achieved:
+
+- ✅ Robust VM service URL detection from `flutter run --machine`
+- ✅ Multi-device handling with interactive selection
+- ✅ Comprehensive error handling (missing Flutter, no devices, offline devices)
+- ✅ CLI flags: `--device`, `--qr-only`, `--json`
+- ✅ LAN IP rewriting for wireless connectivity
+- ✅ Chrome web hostname auto-configuration
+- ✅ NPM package ready (works with npm, pnpm, and bun)
+- ✅ Complete documentation and contribution guidelines
+
+**The CLI is production-ready and fully functional!**
+
+### 🚧 Phase 2: Companion App MVP — NEXT
+
+Upcoming work:
+- QR scanner screen with camera permissions
+- VM service WebSocket connection
+- Basic status UI (connected/disconnected/error)
+- Hot reload trigger and status display
 
 ---
 
