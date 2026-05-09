@@ -2,13 +2,17 @@
 
 This roadmap is ordered. Each milestone builds on the previous one.
 
-## Milestone 1: CLI foundation
+## Milestone 1: CLI foundation ✅ COMPLETED
 - [x] Terminal QR code generation
-- [ ] Parse `flutter run --machine` JSON events for `vmServiceUri`
-- [ ] Multi-device detection with selection prompt
-- [ ] Clear errors for no devices, bad project, or missing Flutter
-- [ ] CLI flags: `--device`, `--qr-only`, `--json`
-- [ ] Publish and support `npx flutterbridge`
+- [x] Parse `flutter run --machine` JSON events for `vmServiceUri`
+- [x] Multi-device detection with selection prompt
+- [x] Clear errors for no devices, bad project, or missing Flutter
+- [x] Offline device detection with actionable hints
+- [x] CLI flags: `--device`, `--qr-only`, `--json`
+- [x] LAN IP rewriting for wireless connectivity
+- [x] Chrome web hostname auto-configuration
+- [x] Package configuration for npm publishing
+- [x] Ready to publish: `npx flutterbridge` support
 
 ## Milestone 2: Companion app MVP
 - [ ] QR scanner screen with permissions

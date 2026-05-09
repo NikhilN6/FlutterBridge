@@ -178,6 +178,9 @@ function rewriteVmServiceUrl(originalUrl) {
 
     const lanIp = getLanIp();
     if (!lanIp) {
+      console.warn(chalk.yellow('\n⚠️  Warning: Could not detect LAN IP address.'));
+      console.warn(chalk.yellow('Make sure your PC and phone are on the same WiFi network.'));
+      console.warn(chalk.yellow('Connection may fail with localhost URL.\n'));
       return { url: originalUrl, replaced: false };
     }
 
@@ -291,6 +294,11 @@ async function resolveDeviceId(deviceIdArg, options = {}) {
   const supported = devices.filter((device) => device.isSupported !== false);
 
   if (supported.length === 0) {
+    const offline = devices.filter((d) => !d.isSupported && (d.emulator === false || d.emulator === undefined));
+    if (offline.length > 0) {
+      const hints = offline.map((d) => `  - ${d.name} (${d.id})`).join('\n');
+      throw new Error(`No available devices. Found offline/unauthorized devices:\n${hints}\n\nTry:\n  - Enable USB debugging on your device\n  - Run 'adb devices' and authorize the device\n  - Reconnect your device`);
+    }
     throw new Error('No devices found. Connect a device or start an emulator.');
   }
 

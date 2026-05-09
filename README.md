@@ -28,11 +28,15 @@ It enables:
 | Feature | Status |
 |---|---|
 | QR Code generation in terminal | ✅ Done |
-| Flutter VM URL detection | 🔄 In Progress |
-| Hot reload over WiFi | 🔄 In Progress |
-| Companion Android app | 📅 Planned |
-| iOS support | 📅 Planned |
-| Plugin support | 📅 Planned |
+| Flutter VM URL detection | ✅ Done |
+| Device selection & error handling | ✅ Done |
+| CLI flags (--device, --qr-only, --json) | ✅ Done |
+| LAN IP rewriting | ✅ Done |
+| NPM package ready | ✅ Done |
+| Hot reload over WiFi | 📅 Planned (Phase 2) |
+| Companion Android app | 📅 Planned (Phase 2) |
+| iOS support | 📅 Planned (Phase 5) |
+| Plugin support | 📅 Planned (Phase 5) |
 
 ---
 
@@ -83,6 +87,18 @@ flutterbridge/
 
 ### Installation
 
+#### Option 1: NPM (Recommended)
+
+```bash
+# Global installation
+npm install -g flutterbridge
+
+# Or use npx (no installation needed)
+npx flutterbridge
+```
+
+#### Option 2: From Source
+
 ```bash
 git clone https://github.com/vaishnavkm/flutterbridge.git
 cd flutterbridge/cli
@@ -94,6 +110,13 @@ pnpm install
 Navigate to your Flutter project and run:
 
 ```bash
+# If installed globally
+flutterbridge
+
+# Or with npx
+npx flutterbridge
+
+# Or from source
 node /path/to/flutterbridge/cli/index.js
 ```
 
@@ -103,13 +126,18 @@ You will see a QR code appear in your terminal.
 
 ```bash
 # Choose a specific device (recommended when multiple devices are connected)
-node /path/to/flutterbridge/cli/index.js --device <device-id>
+flutterbridge --device <device-id>
+flutterbridge -d <device-id>
 
 # Print only the QR code (no extra logs)
-node /path/to/flutterbridge/cli/index.js --qr-only
+flutterbridge --qr-only
 
 # Print machine-readable output (JSON) when the VM URL is ready
-node /path/to/flutterbridge/cli/index.js --json
+flutterbridge --json
+
+# Pass additional Flutter flags
+flutterbridge -- --release
+flutterbridge -- --flavor production
 ```
 
 ### Connect Your Device
@@ -128,21 +156,21 @@ Make changes in your Flutter code and save. FlutterBridge automatically reflects
 
 ## 🛣️ Roadmap (Detailed, ordered)
 
-### Phase 1 — Solid CLI foundation (do this first)
-1. **Reliable VM service URL detection**
+### Phase 1 — Solid CLI foundation ✅ COMPLETED
+1. **Reliable VM service URL detection** ✅
         - Parse `flutter run --machine` JSON events (not stdout text).
         - Handle multi-device output; choose default or prompt.
         - Retry until `vmServiceUri` appears; time out with clear error.
-2. **Error handling and guardrails**
+2. **Error handling and guardrails** ✅
         - Detect missing Flutter, not-a-Flutter-project, no devices, or offline device.
         - Provide actionable fixes (commands or links).
-3. **CLI flags and UX**
+3. **CLI flags and UX** ✅
         - `--device <id>` to force device selection.
         - `--qr-only` to print QR without extra logs.
         - `--json` for machine-readable output (future automation).
-4. **Packaging and distribution**
-        - Publish `flutterbridge` CLI package.
-        - Support `npx flutterbridge` and `npm i -g flutterbridge`.
+4. **Packaging and distribution** ✅
+        - Package configured for npm publishing.
+        - Ready to support `npx flutterbridge` and `npm i -g flutterbridge`.
 
 ### Phase 2 — Companion app MVP
 1. **QR scanner screen**
